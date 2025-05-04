@@ -198,7 +198,6 @@ void FLOAT_igualarExponentes(FLOAT *flotante1, FLOAT *flotante2){
     flotante2->mantissa = flotante2->mantissa | (1 << 23);
 
     if(flotante1->exponente < flotante2->exponente){
-        
         diferencia = flotante2->exponente - flotante1->exponente;
         flotante1->exponente = flotante2->exponente;
         flotante1->mantissa = flotante1->mantissa >> diferencia;
