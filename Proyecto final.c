@@ -22,7 +22,7 @@ typedef union{
     float flotante;
     uint32_t temp;
 } UNION_FLOAT;
-FLOAT FLOAT_convertirAFlotante(float numero);
+FLOAT FLOAT_floatAFLOAT(float numero);
 int FLOAT_valorExponente(FLOAT flotante);
 void FLOAT_igualarExponentes(FLOAT *flotante1, FLOAT *flotante2); 
 void FLOAT_normalizar(FLOAT *flotante);
@@ -63,14 +63,16 @@ int main(){
                 scanf("%f", &tempFlotante1);
                 printf("Ingresa el segundo numero: ");
                 scanf("%f", &tempFlotante2);
-                flotante1 = FLOAT_convertirAFlotante(tempFlotante1);
-                flotante2 = FLOAT_convertirAFlotante(tempFlotante2);
+                flotante1 = FLOAT_floatAFLOAT(tempFlotante1);
+                flotante2 = FLOAT_floatAFLOAT(tempFlotante2);
                 FLOAT_imprimir(flotante1);
                 printf(" + ");
                 FLOAT_imprimir(flotante2);
                 printf(" = ");
                 resultado = FLOAT_suma(flotante1, flotante2);
                 FLOAT_imprimir(resultado);
+                printf("\n");
+                FLOAT_imprimirBits(resultado);
                 printf("\n");
                 break;
             }
@@ -80,8 +82,8 @@ int main(){
                 scanf("%f", &tempFlotante1);
                 printf("Ingresa el segundo numero: ");
                 scanf("%f", &tempFlotante2);
-                flotante1 = FLOAT_convertirAFlotante(tempFlotante1);
-                flotante2 = FLOAT_convertirAFlotante(tempFlotante2);
+                flotante1 = FLOAT_floatAFLOAT(tempFlotante1);
+                flotante2 = FLOAT_floatAFLOAT(tempFlotante2);
                 FLOAT_imprimir(flotante1);
                 printf(" - ");
                 FLOAT_imprimir(flotante2);
@@ -97,8 +99,8 @@ int main(){
                 scanf("%f", &tempFlotante1);
                 printf("Ingresa el segundo numero: ");
                 scanf("%f", &tempFlotante2);
-                flotante1 = FLOAT_convertirAFlotante(tempFlotante1);
-                flotante2 = FLOAT_convertirAFlotante(tempFlotante2);
+                flotante1 = FLOAT_floatAFLOAT(tempFlotante1);
+                flotante2 = FLOAT_floatAFLOAT(tempFlotante2);
                 FLOAT_imprimir(flotante1);
                 printf(" * ");
                 FLOAT_imprimir(flotante2);
@@ -125,7 +127,7 @@ int main(){
 }
 
 //funcion para convertir del tipo de dato float a nuestro FLOAT
-FLOAT FLOAT_convertirAFlotante(float numero){
+FLOAT FLOAT_floatAFLOAT(float numero){
     UNION_FLOAT tempUnion;
     FLOAT nuevoNumero;
 
