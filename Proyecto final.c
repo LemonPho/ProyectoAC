@@ -75,6 +75,40 @@ int main(){
                 break;
             }
 
+            case RESTA: {
+                printf("Ingresa el primer numero: ");
+                scanf("%f", &tempFlotante1);
+                printf("Ingresa el segundo numero: ");
+                scanf("%f", &tempFlotante2);
+                flotante1 = FLOAT_convertirAFlotante(tempFlotante1);
+                flotante2 = FLOAT_convertirAFlotante(tempFlotante2);
+                FLOAT_imprimir(flotante1);
+                printf(" - ");
+                FLOAT_imprimir(flotante2);
+                printf(" = ");
+                resultado = FLOAT_resta(flotante1, flotante2);
+                FLOAT_imprimir(resultado);
+                printf("\n");
+                break;
+            }
+
+            case MULTIPLICACION: {
+                printf("Ingresa el primer numero: ");
+                scanf("%f", &tempFlotante1);
+                printf("Ingresa el segundo numero: ");
+                scanf("%f", &tempFlotante2);
+                flotante1 = FLOAT_convertirAFlotante(tempFlotante1);
+                flotante2 = FLOAT_convertirAFlotante(tempFlotante2);
+                FLOAT_imprimir(flotante1);
+                printf(" * ");
+                FLOAT_imprimir(flotante2);
+                printf(" = ");
+                resultado = FLOAT_multiplicacion(flotante1, flotante2);
+                FLOAT_imprimir(resultado);
+                printf("\n");
+                break;
+            }
+
             case SALIR: {
                 salir = 1;
                 break;
@@ -196,12 +230,28 @@ FLOAT FLOAT_suma(FLOAT flotante1, FLOAT flotante2){
 
 FLOAT FLOAT_resta(FLOAT flotante1, FLOAT flotante2){
     FLOAT_igualarExponentes(&flotante1, &flotante2);
-    //TODO
+    
+    FLOAT resultado;
+    resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
+    resultado.exponente = flotante1.exponente;
+    resultado.signo = flotante1.signo;
+
+    FLOAT_normalizar(&resultado);
+
+    return resultado;
 }
 
 FLOAT FLOAT_multiplicacion(FLOAT flotante1, FLOAT flotante2){
     FLOAT_igualarExponentes(&flotante1, &flotante2);
-    //TODO
+
+    FLOAT resultado;
+    resultado.mantissa = flotante1.mantissa * flotante2.mantissa;
+    resultado.exponente = flotante1.exponente;
+    resultado.signo = flotante1.signo;
+
+    FLOAT_normalizar(&resultado);
+
+    return resultado;
 }
 
 FLOAT FLOAT_division(FLOAT flotante1, FLOAT flotante2){
