@@ -9,6 +9,7 @@
 #define DIVISION 4
 #define SALIR 5
 
+
 //definicion del flotante personalizado
 typedef struct{
     uint8_t signo; //el signo (1 bit)
@@ -23,11 +24,14 @@ typedef union{
     uint32_t temp;
 } UNION_FLOAT;
 FLOAT FLOAT_floatAFLOAT(float numero);
-int FLOAT_valorExponente(FLOAT flotante);
 void FLOAT_igualarExponentes(FLOAT *flotante1, FLOAT *flotante2); 
 void FLOAT_normalizar(FLOAT *flotante);
+void FLOAT_normalizar64Bits(uint64_t bits, FLOAT *flotante);
 void FLOAT_imprimir(FLOAT flotante);
 void FLOAT_imprimirBits(FLOAT flotante);
+int FLOAT_esInfinito(FLOAT flotante);
+int FLOAT_esCero(FLOAT flotante);
+int FLOAT_esIndefinido(FLOAT flotante);
 
 //funciones aritmeticas
 FLOAT FLOAT_suma(FLOAT flotante1, FLOAT flotante2);
@@ -36,8 +40,9 @@ FLOAT FLOAT_multiplicacion(FLOAT flotante1, FLOAT flotante2);
 FLOAT FLOAT_division(FLOAT flotante1, FLOAT flotante2);
 
 float poder(float base, int exponente);
-void imprimir8Bits(uint8_t valor);
-void imprimir32Bits(uint32_t valor);
+void imprimir8Bits(uint8_t bits);
+void imprimir32Bits(uint32_t bits);
+void imprimir64Bits(uint64_t bits);
 void enterParaContinuar();
 
 int main(){
@@ -71,8 +76,6 @@ int main(){
                 printf(" = ");
                 resultado = FLOAT_suma(flotante1, flotante2);
                 FLOAT_imprimir(resultado);
-                printf("\n");
-                FLOAT_imprimirBits(resultado);
                 printf("\n");
                 break;
             }
@@ -111,6 +114,23 @@ int main(){
                 break;
             }
 
+            case DIVISION: {
+                printf("Ingresa el primer numero: ");
+                scanf("%f", &tempFlotante1);
+                printf("Ingresa el segundo numero: ");
+                scanf("%f", &tempFlotante2);
+                flotante1 = FLOAT_floatAFLOAT(tempFlotante1);
+                flotante2 = FLOAT_floatAFLOAT(tempFlotante2);
+                FLOAT_imprimir(flotante1);
+                printf("/");
+                FLOAT_imprimir(flotante2);
+                printf(" = ");
+                resultado = FLOAT_division(flotante1, flotante2);
+                FLOAT_imprimir(resultado);
+                printf("\n");
+                break;
+            }
+
             case SALIR: {
                 salir = 1;
                 break;
@@ -140,30 +160,20 @@ FLOAT FLOAT_floatAFLOAT(float numero){
     return nuevoNumero;
 }
 
-
-//sabemos el signo del exponente en una manera implicita, de aceurdo del estandar IEEE 754:
-//255 (128): reservado para reprenstar NaN o infinito
-//254 -> 1 (127 -> -126): valores para representar el exponente (2^n)
-//0 (-127): para numeros anormales donde no se sabe el valor
-//entonces tenemos el rango funcional de n: [-126, 127] para exponentes, donde 2^n
-int FLOAT_valorExponente(FLOAT flotante){
-    return flotante.exponente - 127;
-}
-
 void FLOAT_imprimir(FLOAT flotante){
-    int exponente = FLOAT_valorExponente(flotante);
-    if(exponente == -127) {
-        printf("Numero anormal");
+    if(FLOAT_esCero(flotante)){
+        printf("%f", 0.0f);
         return;
-    }
-
-    if(exponente == 128){
-        printf("Numero infinito");
+    } else if(FLOAT_esInfinito(flotante)){
+        printf("Infinito");
+        return;
+    } else if(FLOAT_esIndefinido(flotante)){
+        printf("Indefinido");
         return;
     }
 
     //necesitamos convertir el FLOAT a un float para que sea mas facil imprimirlo
-    uint32_t bits = ((uint32_t)flotante.signo << 31) | ((uint32_t)flotante.exponente << 23) | flotante.mantissa & 0x7FFFFF;
+    uint32_t bits = (flotante.signo << 31) | (flotante.exponente << 23) | flotante.mantissa & 0x7FFFFF;
     UNION_FLOAT nuevoFloat; nuevoFloat.temp = bits;
     float numero = nuevoFloat.flotante;
 
@@ -176,12 +186,19 @@ void FLOAT_imprimirBits(FLOAT flotante){
     
     for(int i = 7; i >= 0; i--){
         printf("%d", (flotante.exponente >> i) & 1);
-        if (i % 4 == 0) printf(" ");
+        if (i % 4 == 0) printf(" "); //espacios entre 4 bits
     }
     for(int i = 22; i >= 0; i--){
         printf("%d", (flotante.mantissa >> i) & 1);
         if ((i+1) % 4 == 0) printf(" "); //espacios entre 4 bits
     }
+}
+
+void FLOAT_agregar1Implicito(FLOAT* flotante){
+    //UL = 32 bits
+    //ULL = 64 bits
+    //si en vez de 1 << 23 fuera 1 << 32 o mas, se tendria que poner ULL para guardar mas que 32 bits en esa comparacion
+    flotante->mantissa = flotante->mantissa | (1UL << 23);
 }
 
 //esta funcion iguala los valores en los exponentes de los floats, para luego poder hacer operaciones aritmeticas
@@ -194,8 +211,8 @@ void FLOAT_igualarExponentes(FLOAT *flotante1, FLOAT *flotante2){
     int diferencia;
 
     //agregando los 1's implicitos del estandar ieee 754
-    flotante1->mantissa = flotante1->mantissa | (1 << 23);
-    flotante2->mantissa = flotante2->mantissa | (1 << 23);
+    FLOAT_agregar1Implicito(flotante1);
+    FLOAT_agregar1Implicito(flotante2);
 
     if(flotante1->exponente < flotante2->exponente){
         diferencia = flotante2->exponente - flotante1->exponente;
@@ -210,12 +227,47 @@ void FLOAT_igualarExponentes(FLOAT *flotante1, FLOAT *flotante2){
 
 
 void FLOAT_normalizar(FLOAT *flotante){
-    while(flotante->mantissa >= (1 << 24)){
+    while(flotante->mantissa >= (1UL << 24)){
         flotante->mantissa = flotante->mantissa >> 1;
         flotante->exponente = flotante->exponente + 1;
     }
+
+    while(flotante->mantissa < (1UL << 23)){
+        flotante->mantissa = flotante->mantissa << 1;
+        flotante->exponente = flotante->exponente - 1;
+    }
 }
 
+void FLOAT_normalizar64Bits(uint64_t bits, FLOAT* flotante){
+    if(bits > (1ULL << 47)){
+        //en este caso tuvimos una multiplicacion que movio al decimal
+        //ejemplo: 1.1 * 1.1 = 10.01
+        //checamos si los bits van mas de 47, porque al multiplicar dos registros de 24 nos da normalmente 47
+        //pero hay veces que por agregar un decimal (por ejemplo 99 -> 100), se tiene que mover el exponente un posicion
+        flotante->exponente = flotante->exponente + 1;
+    }
+    
+    //reducir los bits al tamanio 23
+    while(bits >= (1ULL << 24)){
+        bits = bits >> 1;
+    }        
+
+    //grabar los bits del posicion 23 -> 0 y asi eliminamos el 1 implicito que agregamos antes
+    flotante->mantissa = bits & 0x7FFFFF;
+}
+
+int FLOAT_esInfinito(FLOAT flotante){
+    //0xFF = 1111 1111
+    return flotante.mantissa == 0x0 && flotante.exponente == 0xFF;
+}
+
+int FLOAT_esCero(FLOAT flotante){
+    return flotante.exponente == 0x0 && flotante.mantissa == 0x0;
+}
+
+int FLOAT_esIndefinido(FLOAT flotante){
+    return flotante.exponente == 0xFF && flotante.mantissa >= 1;
+}
 
 FLOAT FLOAT_suma(FLOAT flotante1, FLOAT flotante2){
     FLOAT_igualarExponentes(&flotante1, &flotante2);
@@ -231,11 +283,30 @@ FLOAT FLOAT_suma(FLOAT flotante1, FLOAT flotante2){
 
 FLOAT FLOAT_resta(FLOAT flotante1, FLOAT flotante2){
     FLOAT_igualarExponentes(&flotante1, &flotante2);
-    
     FLOAT resultado;
-    resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
+
+    flotante2.signo = !flotante2.signo;
+    
+    if(flotante2.signo == flotante1.signo){
+        resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
+        resultado.signo = flotante1.signo;
+    } else {
+        if (flotante1.mantissa > flotante2.mantissa) {
+            resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
+            resultado.signo = flotante1.signo;
+        } else if(flotante1.mantissa < flotante2.mantissa) {
+            resultado.mantissa = flotante2.mantissa - flotante1.mantissa;
+            resultado.signo = flotante2.signo;
+        } else {
+            //0
+            resultado.signo = 0;
+            resultado.mantissa = 0;
+            resultado.exponente = 0;
+            return resultado;
+        }
+    }
+    
     resultado.exponente = flotante1.exponente;
-    resultado.signo = flotante1.signo;
 
     FLOAT_normalizar(&resultado);
 
@@ -243,21 +314,46 @@ FLOAT FLOAT_resta(FLOAT flotante1, FLOAT flotante2){
 }
 
 FLOAT FLOAT_multiplicacion(FLOAT flotante1, FLOAT flotante2){
-    FLOAT_igualarExponentes(&flotante1, &flotante2);
+    FLOAT_agregar1Implicito(&flotante1);
+    FLOAT_agregar1Implicito(&flotante2);
 
     FLOAT resultado;
-    resultado.mantissa = flotante1.mantissa * flotante2.mantissa;
-    resultado.exponente = flotante1.exponente;
-    resultado.signo = flotante1.signo;
+    uint64_t auxMantissa;
 
-    FLOAT_normalizar(&resultado);
+    auxMantissa = (uint64_t)flotante1.mantissa * (uint64_t)flotante2.mantissa;
+    resultado.exponente = flotante1.exponente + flotante2.exponente - 127;
+    resultado.signo = flotante1.signo ^ flotante2.signo;
+
+    FLOAT_normalizar64Bits(auxMantissa, &resultado);
 
     return resultado;
 }
 
 FLOAT FLOAT_division(FLOAT flotante1, FLOAT flotante2){
-    FLOAT_igualarExponentes(&flotante1, &flotante2);
-    //TODO
+    FLOAT resultado;
+
+    if(FLOAT_esCero(flotante2)){
+        resultado.exponente = 0;
+        resultado.mantissa = 1;
+        return resultado;
+    } else if(FLOAT_esInfinito(flotante1) || FLOAT_esInfinito(flotante2)){
+        resultado.mantissa = 0;
+        resultado.exponente = 0xFF;
+        return resultado;
+    }
+
+    FLOAT_agregar1Implicito(&flotante1);
+    FLOAT_agregar1Implicito(&flotante2);
+
+    uint64_t dividendo = (uint64_t)flotante1.mantissa << 23; //para mas precision
+
+    resultado.mantissa = dividendo / flotante2.mantissa;
+    resultado.exponente = flotante1.exponente - flotante2.exponente + 127;
+    resultado.signo = flotante1.signo ^ flotante2.signo;
+
+    FLOAT_normalizar(&resultado);
+
+    return resultado;
 }
 
 float poder(float base, int exponente){
@@ -270,16 +366,23 @@ float poder(float base, int exponente){
     return resultado;
 }
 
-void imprimir8Bits(uint8_t valor){
+void imprimir8Bits(uint8_t bits){
     for(int i = 7; i >= 0; i--){
-        printf("%d", (valor >> i) & 1);
+        printf("%d", (bits >> i) & 1);
         if(i % 4 == 0) printf(" ");
     }
 }
 
-void imprimir32Bits(uint32_t valor){
+void imprimir32Bits(uint32_t bits){
     for(int i = 31; i >= 0; i--){
-        printf("%d", (valor >> i) & 1);
+        printf("%d", (bits >> i) & 1);
+        if (i % 4 == 0) printf(" "); //espacios entre 4 bits
+    }
+}
+
+void imprimir64Bits(uint64_t bits){
+    for(int i = 63; i >= 0; i--){
+        printf("%d", (bits >> i) & 1);
         if (i % 4 == 0) printf(" "); //espacios entre 4 bits
     }
 }
