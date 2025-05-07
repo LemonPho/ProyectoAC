@@ -9,7 +9,6 @@
 #define DIVISION 4
 #define SALIR 5
 
-
 //definicion del flotante personalizado
 typedef struct{
     uint8_t signo; //el signo (1 bit)
@@ -273,9 +272,19 @@ FLOAT FLOAT_suma(FLOAT flotante1, FLOAT flotante2){
     FLOAT_igualarExponentes(&flotante1, &flotante2);
 
     FLOAT resultado;
-    resultado.mantissa = flotante1.mantissa + flotante2.mantissa;
+    if(flotante1.signo != flotante2.signo){
+        if(flotante1.mantissa > flotante2.mantissa){
+            resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
+            resultado.signo = flotante1.signo;
+        } else {
+            resultado.mantissa = flotante2.mantissa - flotante1.mantissa;
+            resultado.signo = flotante2.signo;
+        }
+    } else {
+        resultado.mantissa = flotante1.mantissa + flotante2.mantissa;
+        resultado.signo = flotante1.signo;
+    }
     resultado.exponente = flotante1.exponente;
-    resultado.signo = flotante1.signo;
     FLOAT_normalizar(&resultado);
     
     return resultado;
@@ -284,25 +293,26 @@ FLOAT FLOAT_suma(FLOAT flotante1, FLOAT flotante2){
 FLOAT FLOAT_resta(FLOAT flotante1, FLOAT flotante2){
     FLOAT_igualarExponentes(&flotante1, &flotante2);
     FLOAT resultado;
-
-    flotante2.signo = !flotante2.signo;
     
     if(flotante2.signo == flotante1.signo){
+        if(flotante1.mantissa == flotante2.mantissa){
+            resultado.exponente = 0;
+            resultado.mantissa = 0;
+            resultado.signo = 0;
+            return resultado;
+        }
         resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
         resultado.signo = flotante1.signo;
     } else {
         if (flotante1.mantissa > flotante2.mantissa) {
-            resultado.mantissa = flotante1.mantissa - flotante2.mantissa;
+            resultado.mantissa = flotante1.mantissa + flotante2.mantissa;
             resultado.signo = flotante1.signo;
         } else if(flotante1.mantissa < flotante2.mantissa) {
-            resultado.mantissa = flotante2.mantissa - flotante1.mantissa;
+            resultado.mantissa = flotante2.mantissa + flotante1.mantissa;
             resultado.signo = flotante2.signo;
         } else {
-            //0
-            resultado.signo = 0;
-            resultado.mantissa = 0;
-            resultado.exponente = 0;
-            return resultado;
+            resultado.mantissa = flotante1.mantissa + flotante2.mantissa;
+            resultado.signo = flotante1.signo;
         }
     }
     
